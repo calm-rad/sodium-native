@@ -43,20 +43,28 @@ if (process.argv.indexOf('--print-lib') > -1) {
 
 mkdirSync(path.join(__dirname, 'lib'))
 
-switch (os.platform()) {
-  case 'darwin':
-    buildDarwin()
-    break
+// switch (os.platform()) {
+//   case 'darwin':
+//     buildDarwin()
+//     break
 
-  case 'win32':
-    buildWindows()
-    break
+//   case 'win32':
+//     buildWindows()
+//     break
 
-  default:
-    buildUnix('so', function (err) {
-      if (err) throw err
-    })
-    break
+//   default:
+//     buildUnix('so', function (err) {
+//       if (err) throw err
+//     })
+//     break
+// }
+
+if (process.env.PLATFORM_NAME === 'iphoneos') {
+  buildIOS()
+} else {
+  buildAndroid('arm', () => {
+    buildAndroid('arm64', () => {})
+  })
 }
 
 function findMsBuild () {
@@ -139,6 +147,62 @@ function buildDarwin () {
     if (err) throw err
     spawn('install_name_tool', ['-id', res, res], { stdio: 'inherit' }, function (err) {
       if (err) throw err
+    })
+  })
+}
+
+function buildAndroid(arch, cb) {
+  mkdirSync(path.join(__dirname, 'lib/android-' + arch))
+  var res = path.join(__dirname, 'lib/android-' + arch, 'libsodium.so')
+  if (fs.existsSync(res)) return
+
+  var buildScript =
+    arch === 'arm' ? 'android-armv7-a.sh' :
+    arch === 'arm64' ? 'android-armv8-a.sh' :
+    ':'
+  var outputDir =
+    arch === 'arm' ? 'libsodium/libsodium-android-armv7-a/lib' :
+    arch === 'arm64' ? 'libsodium/libsodium-android-armv8-a/lib' :
+    '.'
+
+  spawn('./configure-mobile', [], { cwd: __dirname, stdio: 'inherit' }, function (err) {
+    if (err) throw err
+    spawn('./dist-build/' + buildScript, [], { cwd: path.resolve(__dirname, 'libsodium'), stdio: 'inherit', env: {...process.env, LIBSODIUM_FULL_BUILD: 'yes'} }, function (err) {
+      if (err) throw err
+
+      var la = ini.decode(fs.readFileSync(path.resolve(__dirname, outputDir, 'libsodium.la')).toString())
+
+      var lib = fs.realpathSync(path.join(la.libdir, la.dlname))
+      fs.rename(lib, res, function (err) {
+        if (err) throw err
+        if (cb) cb()
+      })
+    })
+  })
+}
+
+function buildIOS(cb) {
+  mkdirSync(path.join(__dirname, 'lib/ios'))
+  var res = path.join(__dirname, 'lib/ios', 'libsodium.so')
+  var outputDir = 'libsodium/libsodium-ios/lib';
+  if (fs.existsSync(res)) return
+
+  spawn('./configure-mobile', [], { cwd: __dirname, stdio: 'inherit' }, function (err) {
+    if (err) throw err
+
+    // Patch ./dist-build/ios.sh
+    var replacementBuildScript = path.join(__dirname, 'patches/ios.sh')
+    var targetBuildScript = path.join(__dirname, 'libsodium/dist-build/ios.sh')
+    fs.copyFileSync(replacementBuildScript, targetBuildScript)
+
+    spawn('./dist-build/ios.sh', [], { cwd: path.resolve(__dirname, 'libsodium'), stdio: 'inherit', env: {...process.env, LIBSODIUM_FULL_BUILD: 'yes'} }, function (err) {
+      if (err) throw err
+
+      var lib = fs.realpathSync(path.resolve(__dirname, outputDir, 'libsodium.a'))
+      fs.rename(lib, res, function (err) {
+        if (err) throw err
+        if (cb) cb()
+      })
     })
   })
 }

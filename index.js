@@ -1,3 +1,6 @@
-var sodium = require('node-gyp-build')(__dirname)
+var sodium = require('bindings')({
+  bindings: 'sodium.node',
+  name: 'sodium-native-nodejs-mobile',
+});
 
-module.exports = sodium
+module.exports = sodium;
