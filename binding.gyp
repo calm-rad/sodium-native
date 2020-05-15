@@ -14,11 +14,13 @@
             'OTHER_CFLAGS': [
               '-g',
               '-O3',
+              '-Wall',
             ]
           },
           'cflags': [
             '-g',
             '-O3',
+            '-Wall',
           ],
         }],
         ['OS == "android"', {
