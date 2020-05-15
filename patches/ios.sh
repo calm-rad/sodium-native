@@ -4,16 +4,8 @@ export PREFIX="$(pwd)/libsodium-ios"
 export IOS64_PREFIX="$PREFIX/tmp/ios64"
 export XCODEDIR=$(xcode-select -p)
 
-echo
-echo "LIBSODIUM IOS PREFIX DIRECTORY: $PREFIX"
-echo
-
 export IOS_SIMULATOR_VERSION_MIN=${IOS_SIMULATOR_VERSION_MIN-"9.0.0"}
 export IOS_VERSION_MIN=${IOS_VERSION_MIN-"9.0.0"}
-
-echo
-echo "Maybe exit here?"
-echo
 
 mkdir -p $IOS64_PREFIX || exit 1
 
@@ -39,24 +31,12 @@ export LDFLAGS="-fembed-bitcode -arch arm64 -isysroot ${SDK} -mios-version-min=$
 
 make distclean > /dev/null
 
-echo
-echo "Libsodium about to run configure command?"
-echo
-
 ./configure --host=arm-apple-darwin10 \
             --disable-shared \
             ${LIBSODIUM_ENABLE_MINIMAL_FLAG} \
             --prefix="$IOS64_PREFIX" || exit 1
 
-echo
-echo "Maybe exit here??"
-echo
-
 make -j${PROCESSORS} install || exit 1
-
-echo
-echo "About to create universal binary for libsodium"
-echo
 
 # Create universal binary and include folder
 rm -fr -- "$PREFIX/include" "$PREFIX/libsodium.a" 2> /dev/null
