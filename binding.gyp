@@ -45,7 +45,7 @@
         }],
         ['OS == "ios"', {
           'include_dirs' : [
-            'libsodium/src/libsodium-ios/include'
+            'libsodium/libsodium-ios/include',
           ],
           'libraries': [
             '<(module_root_dir)/lib/ios/libsodium.so',
